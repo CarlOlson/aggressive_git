@@ -2,6 +2,7 @@ source 'https://rubygems.org'
 
 group :test do
   gem 'rspec', '~>3.5'
+  gem 'rspec-mocks', '~>3.5'
   gem 'guard', '~>2.14'
   gem 'guard-rspec', '~>4.7'
   gem 'fuubar', '~>2.2'

@@ -77,5 +77,20 @@ describe AggressiveGit do
         expect(dir_size).to eq 1
       end
     end
+
+    describe '#wipe_after' do
+      it 'wipes changes after set time' do
+        thread = AggressiveGit.wipe_after 60
+        touch_file 'second_file'
+        now = Time.now.to_f
+
+        allow(Time).to receive_message_chain(:now, :to_f) { now + 59 }
+        expect(dir_size).to eq 2
+
+        allow(Time).to receive_message_chain(:now, :to_f) { now + 60 }
+        thread.join
+        expect(dir_size).to eq 1
+      end
+    end
   end
 end
