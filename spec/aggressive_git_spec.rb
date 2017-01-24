@@ -23,15 +23,19 @@ describe AggressiveGit do
     temp_folder = 'temp_git'
 
     before(:each) do
+      if Dir.exists? temp_folder
+        FileUtils.rm_rf temp_folder
+      end
       FileUtils.mkdir temp_folder
       Dir.chdir temp_folder
       system 'git', 'init'
       commit_new_file 'first_file'
+      stub_const 'AggressiveGit::WAIT', 0.01
     end
 
     after(:each) do
       Dir.chdir '..'
-      FileUtils.rm_r temp_folder
+      FileUtils.rm_rf temp_folder
     end
 
     describe '#last_commit_time' do
@@ -85,14 +89,17 @@ describe AggressiveGit do
         touch_file 'second_file'
 
         mock_time { now + 59 }
-        double_wait
+        wait
+
         expect(dir_size).to eq 2
 
         mock_time { now + 61 }
-        double_wait
+        wait
+
         expect(dir_size).to eq 1
 
         thread.kill
+        thread.join
       end
 
       it 'resets after each commit' do
@@ -103,25 +110,63 @@ describe AggressiveGit do
 
         mock_last_commit_time { now + 10 }
         mock_time { now + 61 }
+        wait
 
-        double_wait
         expect(dir_size).to eq 2
 
         thread.kill
+        thread.join
       end
 
       it 'can resume after being restarted' do
+        now = Time.now.to_f
+        mock_last_commit_time { now - 10 }
+        thread = AggressiveGit.wipe_after 60, resume: true
+        touch_file 'second_file'
+
+        wait
+        mock_time { now + 51 }
+        wait
+
+        expect(dir_size).to eq 1
+
+        thread.kill
+        thread.join
+      end
+
+      it 'starts over after being restarted' do
         now = Time.now.to_f
         mock_last_commit_time { now - 10 }
         thread = AggressiveGit.wipe_after 60
         touch_file 'second_file'
 
         mock_time { now + 51 }
+        wait
 
-        double_wait
+        expect(dir_size).to eq 2
+
+        thread.kill
+        thread.join
+      end
+
+      it 'wipes files repeatedly' do
+        now = Time.now.to_f
+        thread = AggressiveGit.wipe_after 60
+        touch_file 'second_file'
+
+        mock_time { now + 61 }
+        wait
+
+        mock_last_commit_time { now + 70 }
+        touch_file 'third_file'
+
+        mock_time { now + 71 + 61 }
+        wait
+
         expect(dir_size).to eq 1
 
         thread.kill
+        thread.join
       end
     end
   end

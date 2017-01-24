@@ -7,6 +7,7 @@ end
 
 def touch_file filename
   system 'touch', filename
+  sleep 0.1 until File.exists? filename
 end
 
 def stage_new_file filename
@@ -31,6 +32,6 @@ def mock_last_commit_time &block
   allow(AggressiveGit).to receive(:last_commit_time, &block)
 end
 
-def double_wait
-  sleep AggressiveGit::WAIT * 2
+def wait
+  sleep 0.1
 end

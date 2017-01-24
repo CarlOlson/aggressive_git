@@ -18,19 +18,34 @@ module AggressiveGit
     `git clean -f -d`
   end
 
-  def self.wipe_after seconds
+  def self.wipe_after seconds, resume: false
     Thread.new do
-      end_time = AggressiveGit.last_commit_time + seconds
-
-      until Time.now.to_f >= end_time
-        sleep WAIT
+      wipe_after_core seconds, resume
+      loop do
+        wipe_after_core seconds, true
       end
+    end
+  end
 
-      end_time = AggressiveGit.last_commit_time + seconds
-      if Time.now.to_f >= end_time
-        remove_tracked_changes
-        remove_untracked_changes
-      end
+  private
+  def self.past_time? time
+    Time.now.to_f >= time
+  end
+
+  def self.wipe_after_core seconds, resume
+    if resume
+      end_time = last_commit_time + seconds
+    else
+      end_time = Time.now.to_f + seconds
+    end
+
+    until past_time?(end_time)
+      sleep WAIT
+    end
+
+    if past_time?(last_commit_time + seconds)
+      remove_tracked_changes
+      remove_untracked_changes
     end
   end
 
