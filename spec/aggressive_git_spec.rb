@@ -79,17 +79,32 @@ describe AggressiveGit do
     end
 
     describe '#wipe_after' do
-      it 'wipes changes after set time' do
+      it 'wipes uncommited changes after set time' do
         thread = AggressiveGit.wipe_after 60
-        touch_file 'second_file'
         now = Time.now.to_f
+        touch_file 'second_file'
 
-        allow(Time).to receive_message_chain(:now, :to_f) { now + 59 }
+        mock_time { now + 59 }
+        double_wait
         expect(dir_size).to eq 2
 
-        allow(Time).to receive_message_chain(:now, :to_f) { now + 60 }
+        mock_time { now + 61 }
         thread.join
         expect(dir_size).to eq 1
+      end
+
+      it 'resets after each commit' do
+        thread = AggressiveGit.wipe_after 60
+        now = Time.now.to_f
+        touch_file 'second_file'
+
+        mock_last_commit_time { now + 10 }
+        mock_time { now + 60 }
+
+        double_wait
+        expect(dir_size).to eq 2
+
+        thread.kill
       end
     end
   end

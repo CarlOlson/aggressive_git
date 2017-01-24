@@ -22,3 +22,15 @@ end
 def dir_size
   Dir.glob('*').size
 end
+
+def mock_time &block
+  allow(Time).to receive_message_chain(:now, :to_f, &block)
+end
+
+def mock_last_commit_time &block
+  allow(AggressiveGit).to receive(:last_commit_time, &block)
+end
+
+def double_wait
+  sleep AggressiveGit::WAIT * 2
+end
