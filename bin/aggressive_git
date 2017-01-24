@@ -1,0 +1,12 @@
+#!/usr/bin/env ruby
+
+require 'aggressive_git'
+require 'optparse'
+
+OptionParser.new do |opts|
+  opts.banner = "Usage: aggressive_git [options]"
+
+  opts.on("--version", "Show version number") do
+    puts AggressiveGit::VERSION
+  end
+end.parse!
