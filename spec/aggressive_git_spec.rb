@@ -1,5 +1,16 @@
 require 'fileutils'
+require 'open3'
 require 'spec_helper.rb'
+
+def system *cmds
+  Open3.capture3(*cmds)
+end
+
+def commit_new_file filename
+  system 'touch', filename
+  system 'git', 'add', filename
+  system 'git', 'commit', '-m', filename
+end
 
 describe AggressiveGit do
   it 'has a version number' do
@@ -18,16 +29,14 @@ describe AggressiveGit do
     end
   end
 
-  describe '#last_commit_time' do
+  context 'git projects' do
     temp_folder = 'temp_git'
 
     before(:each) do
       FileUtils.mkdir temp_folder
       Dir.chdir temp_folder
-      `git init`
-      `touch only_file`
-      `git add only_file`
-      `git commit -m only_commit`
+      system 'git', 'init'
+      commit_new_file 'first_file'
     end
 
     after(:each) do
@@ -35,10 +44,27 @@ describe AggressiveGit do
       FileUtils.rm_r temp_folder
     end
 
-    it 'returns a UNIX timestamp' do
-      result = AggressiveGit.last_commit_time
-      expect(result).to be_within(10).of(Time.now.to_i)
+    describe '#last_commit_time' do
+      it 'returns a UNIX timestamp' do
+        result = AggressiveGit.last_commit_time
+        expect(result).to be_within(10).of(Time.now.to_i)
+      end
+    end
+
+    describe '#remove_tracked_changes' do
+      it 'does not remove files' do
+        system 'touch', 'new_file'
+        AggressiveGit.remove_tracked_changes
+        expect(Dir.glob('*')).to include 'new_file'
+      end
+
+      it 'removes changes to commited files' do
+        commit_new_file 'new_file'
+        File.open('new_file', 'w') { |f| f.write 'hello' }
+        AggressiveGit.remove_tracked_changes
+        data = File.open('new_file', 'r') { |f| f.read }
+        expect(data).to eq ''
+      end
     end
   end
-
 end

@@ -7,4 +7,8 @@ module AggressiveGit
     unix_time.to_i
   end
 
+  def self.remove_tracked_changes
+    `git reset --hard`
+  end
+
 end
