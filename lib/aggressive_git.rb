@@ -20,10 +20,17 @@ module AggressiveGit
 
   def self.wipe_after seconds
     Thread.new do
-      end_time = Time.now.to_f + seconds
-      sleep WAIT until Time.now.to_f >= end_time
-      remove_tracked_changes
-      remove_untracked_changes
+      end_time = AggressiveGit.last_commit_time + seconds
+
+      until Time.now.to_f >= end_time
+        sleep WAIT
+      end
+
+      end_time = AggressiveGit.last_commit_time + seconds
+      if Time.now.to_f >= end_time
+        remove_tracked_changes
+        remove_untracked_changes
+      end
     end
   end
 
