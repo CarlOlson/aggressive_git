@@ -65,6 +65,13 @@ describe AggressiveGit do
         data = File.open('new_file', 'r') { |f| f.read }
         expect(data).to eq ''
       end
+
+      it 'removes uncommited, but staged files' do
+        stage_new_file 'new_file'
+        AggressiveGit.remove_tracked_changes
+        expect(Dir.glob('*').size).to eq 1
+      end
+    end
     end
   end
 end
