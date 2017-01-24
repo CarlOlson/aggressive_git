@@ -2,24 +2,6 @@ require 'fileutils'
 require 'open3'
 require 'spec_helper.rb'
 
-def system *cmds
-  Open3.capture3(*cmds)
-end
-
-def touch_file filename
-  system 'touch', filename
-end
-
-def stage_new_file filename
-  touch_file filename
-  system 'git', 'add', filename
-end
-
-def commit_new_file filename
-  stage_new_file filename
-  system 'git', 'commit', '-m', filename
-end
-
 describe AggressiveGit do
   it 'has a version number' do
     expect(AggressiveGit::VERSION).not_to be nil
@@ -61,31 +43,38 @@ describe AggressiveGit do
 
     describe '#remove_tracked_changes' do
       it 'does not remove files' do
-        system 'touch', 'new_file'
+        system 'touch', 'second_file'
         AggressiveGit.remove_tracked_changes
-        expect(Dir.glob('*')).to include 'new_file'
+        expect(dir_size).to eq 2
       end
 
       it 'removes changes to commited files' do
-        commit_new_file 'new_file'
-        File.open('new_file', 'w') { |f| f.write 'hello' }
+        commit_new_file 'second_file'
+        File.open('second_file', 'w') { |f| f.write 'hello' }
         AggressiveGit.remove_tracked_changes
-        data = File.open('new_file', 'r') { |f| f.read }
+        data = File.open('second_file', 'r') { |f| f.read }
         expect(data).to eq ''
       end
 
       it 'removes uncommited, but staged files' do
-        stage_new_file 'new_file'
+        stage_new_file 'second_file'
         AggressiveGit.remove_tracked_changes
-        expect(Dir.glob('*').size).to eq 1
+        expect(dir_size).to eq 1
       end
     end
 
     describe '#remove_untracked_changes' do
       it 'removes unstaged files' do
-        touch_file 'new_file'
+        touch_file 'second_file'
         AggressiveGit.remove_untracked_changes
-        expect(Dir.glob('*').size).to eq 1
+        expect(dir_size).to eq 1
+      end
+
+      it 'removes directories' do
+        FileUtils.mkdir 'new_dir'
+        touch_file 'new_dir/new_file'
+        AggressiveGit.remove_untracked_changes
+        expect(dir_size).to eq 1
       end
     end
   end
