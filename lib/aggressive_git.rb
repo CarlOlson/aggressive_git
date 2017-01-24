@@ -11,4 +11,8 @@ module AggressiveGit
     `git reset --hard`
   end
 
+  def self.remove_untracked_changes
+    `git clean -f -d`
+  end
+
 end

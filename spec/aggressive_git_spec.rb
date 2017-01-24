@@ -6,9 +6,17 @@ def system *cmds
   Open3.capture3(*cmds)
 end
 
-def commit_new_file filename
+def touch_file filename
   system 'touch', filename
+end
+
+def stage_new_file filename
+  touch_file filename
   system 'git', 'add', filename
+end
+
+def commit_new_file filename
+  stage_new_file filename
   system 'git', 'commit', '-m', filename
 end
 
@@ -72,6 +80,13 @@ describe AggressiveGit do
         expect(Dir.glob('*').size).to eq 1
       end
     end
+
+    describe '#remove_untracked_changes' do
+      it 'removes unstaged files' do
+        touch_file 'new_file'
+        AggressiveGit.remove_untracked_changes
+        expect(Dir.glob('*').size).to eq 1
+      end
     end
   end
 end
