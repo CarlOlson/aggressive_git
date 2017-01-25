@@ -3,10 +3,28 @@
 require 'aggressive_git'
 require 'optparse'
 
+options = {}
 OptionParser.new do |opts|
-  opts.banner = "Usage: aggressive_git [options]"
+  opts.banner = 'Usage: aggressive_git [options] MINUTES'
 
-  opts.on("--version", "Show version number") do
-    puts AggressiveGit::VERSION
+  opts.on('--version', 'Show version number') do
+    options[:version] = true
+  end
+
+  opts.on('--resume', 'Starts from last commit time') do
+    options[:resume] = true
   end
 end.parse!
+
+options[:minutes] = ARGV.pop.to_f
+
+if options[:version]
+  puts AggressiveGit::VERSION
+elsif options[:minutes] <= 1
+  puts 'Time interval is too short.'
+elsif !Dir.exists?('.git')
+  puts 'Not in a git directory'
+else
+  AggressiveGit.wipe_after(options[:minutes] * 60,
+                           resume: options[:resume])
+end

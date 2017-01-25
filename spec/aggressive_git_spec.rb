@@ -9,18 +9,41 @@ describe AggressiveGit do
 
   context 'command line' do
     it 'has a command reference' do
-      result = `ruby -Ilib bin/aggressive_git --help`
+      result, _, _ = Open3.capture3('ruby',
+                                    '-I', 'lib',
+                                    'bin/aggressive_git',
+                                    '--help')
       expect(result).to match /^Usage/
     end
 
     it 'shows the version number' do
-      result = `ruby -Ilib bin/aggressive_git --version`
+      result, _, _ = Open3.capture3('ruby',
+                                    '-I', 'lib',
+                                    'bin/aggressive_git',
+                                    '--version')
       expect(result).to match AggressiveGit::VERSION
+    end
+
+    it 'requires a time interval' do
+      result, _, _ = Open3.capture3('ruby',
+                                    '-I', 'lib',
+                                    'bin/aggressive_git')
+      expect(result).to match /too short/
+    end
+
+    it 'requires a git directory' do
+      result, _, _ = Open3.capture3(
+                   'ruby',
+                   '-C', '/tmp',              # change directory
+                   '-I', "#{__dir__}/../lib", # add library
+                   "#{__dir__}/../bin/aggressive_git",
+                   '5')
+      expect(result).to match /git directory/
     end
   end
 
   context 'git projects' do
-    temp_folder = 'temp_git'
+    temp_folder = '/tmp/temp_git'
 
     before(:each) do
       if Dir.exists? temp_folder
@@ -30,13 +53,6 @@ describe AggressiveGit do
       Dir.chdir temp_folder
       system 'git', 'init'
       commit_new_file 'first_file'
-
-      stub_const 'AggressiveGit::WAIT', 0.01
-    end
-
-    after(:each) do
-      Dir.chdir '..'
-      FileUtils.rm_rf temp_folder
     end
 
     describe '#last_commit_time' do
@@ -48,7 +64,7 @@ describe AggressiveGit do
 
     describe '#remove_tracked_changes' do
       it 'does not remove files' do
-        system 'touch', 'second_file'
+        touch_file 'second_file'
         AggressiveGit.remove_tracked_changes
         expect(dir_size).to eq 2
       end
@@ -85,8 +101,8 @@ describe AggressiveGit do
   end
 
   context 'mock git project' do
-    before do
-      stub_const 'AggressiveGit::WAIT', 0.01
+    before(:each) do
+      mock_last_commit_time { 0 }
     end
 
     describe '#wipe_after' do
