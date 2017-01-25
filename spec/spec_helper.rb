@@ -1,5 +1,6 @@
-$LOAD_PATH.unshift File.expand_path("../../lib", __FILE__)
-require "aggressive_git"
+$LOAD_PATH.unshift File.expand_path('../../lib', __FILE__)
+require 'aggressive_git'
+require 'thread'
 
 def system *cmds
   Open3.capture3(*cmds)
@@ -30,6 +31,29 @@ end
 
 def mock_last_commit_time &block
   allow(AggressiveGit).to receive(:last_commit_time, &block)
+end
+
+def mock_wipe &block
+  allow(AggressiveGit).to receive(:wipe, &block)
+end
+
+def mock_sleep
+  mutex = Mutex.new
+  cond = ConditionVariable.new
+
+  allow(AggressiveGit).to receive(:sleep) do
+    mutex.synchronize do
+      cond.signal
+      cond.wait(mutex)
+    end
+  end
+
+  Proc.new do
+    mutex.synchronize do
+      cond.signal
+      cond.wait(mutex)
+    end
+  end
 end
 
 def wait

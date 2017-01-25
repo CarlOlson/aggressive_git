@@ -30,6 +30,7 @@ describe AggressiveGit do
       Dir.chdir temp_folder
       system 'git', 'init'
       commit_new_file 'first_file'
+
       stub_const 'AggressiveGit::WAIT', 0.01
     end
 
@@ -81,89 +82,113 @@ describe AggressiveGit do
         expect(dir_size).to eq 1
       end
     end
+  end
+
+  context 'mock git project' do
+    before do
+      stub_const 'AggressiveGit::WAIT', 0.01
+    end
 
     describe '#wipe_after' do
       it 'wipes uncommited changes after set time' do
+        tick = mock_sleep
+
+        wipe_count = 0
+        mock_wipe { wipe_count += 1 }
+
         now = Time.now.to_f
         thread = AggressiveGit.wipe_after 60
-        touch_file 'second_file'
 
         mock_time { now + 59 }
-        wait
+        tick.call
 
-        expect(dir_size).to eq 2
+        expect(wipe_count).to eq 0
 
         mock_time { now + 61 }
-        wait
+        tick.call
 
-        expect(dir_size).to eq 1
+        expect(wipe_count).to eq 1
 
         thread.kill
         thread.join
       end
 
       it 'resets after each commit' do
+        tick = mock_sleep
+
+        wipe_count = 0
+        mock_wipe { wipe_count += 1 }
+
         now = Time.now.to_f
         mock_last_commit_time { now }
         thread = AggressiveGit.wipe_after 60
-        touch_file 'second_file'
 
         mock_last_commit_time { now + 10 }
         mock_time { now + 61 }
-        wait
+        tick.call
 
-        expect(dir_size).to eq 2
+        expect(wipe_count).to eq 0
 
         thread.kill
         thread.join
       end
 
       it 'can resume after being restarted' do
+        tick = mock_sleep
+
+        wipe_count = 0
+        mock_wipe { wipe_count += 1 }
+
         now = Time.now.to_f
         mock_last_commit_time { now - 10 }
         thread = AggressiveGit.wipe_after 60, resume: true
-        touch_file 'second_file'
 
-        wait
+        tick.call
         mock_time { now + 51 }
-        wait
+        tick.call
 
-        expect(dir_size).to eq 1
+        expect(wipe_count).to eq 1
 
         thread.kill
         thread.join
       end
 
       it 'starts over after being restarted' do
+        tick = mock_sleep
+
+        wipe_count = 0
+        mock_wipe { wipe_count += 1 }
+
         now = Time.now.to_f
         mock_last_commit_time { now - 10 }
         thread = AggressiveGit.wipe_after 60
-        touch_file 'second_file'
 
         mock_time { now + 51 }
-        wait
+        tick.call
 
-        expect(dir_size).to eq 2
+        expect(wipe_count).to eq 0
 
         thread.kill
         thread.join
       end
 
       it 'wipes files repeatedly' do
+        tick = mock_sleep
+
+        wipe_count = 0
+        mock_wipe { wipe_count += 1 }
+
         now = Time.now.to_f
-        thread = AggressiveGit.wipe_after 60
-        touch_file 'second_file'
+        thread = AggressiveGit.wipe_after 60, resume: true
+        tick.call
 
         mock_time { now + 61 }
-        wait
+        tick.call
 
-        mock_last_commit_time { now + 70 }
-        touch_file 'third_file'
+        mock_time { now + 122 }
+        tick.call
 
-        mock_time { now + 71 + 61 }
-        wait
-
-        expect(dir_size).to eq 1
+        expect(wipe_count).to eq 3
 
         thread.kill
         thread.join

@@ -20,9 +20,12 @@ module AggressiveGit
 
   def self.wipe_after seconds, resume: false
     Thread.new do
-      wipe_after_core seconds, resume
+      last_wipe_time = 0
+      wipe_after_core seconds, last_wipe_time, resume
+
       loop do
-        wipe_after_core seconds, true
+        last_wipe_time = Time.now.to_f
+        wipe_after_core seconds, last_wipe_time, true
       end
     end
   end
@@ -32,9 +35,13 @@ module AggressiveGit
     Time.now.to_f >= time
   end
 
-  def self.wipe_after_core seconds, resume
+  def self.wipe_after_core seconds, last_wipe_time, resume
     if resume
-      end_time = last_commit_time + seconds
+      if last_wipe_time + seconds > Time.now.to_f
+        end_time = last_wipe_time + seconds
+      else
+        end_time = last_commit_time + seconds
+      end
     else
       end_time = Time.now.to_f + seconds
     end
@@ -44,9 +51,13 @@ module AggressiveGit
     end
 
     if past_time?(last_commit_time + seconds)
-      remove_tracked_changes
-      remove_untracked_changes
+      wipe
     end
+  end
+
+  def wipe
+    remove_tracked_changes
+    remove_untracked_changes
   end
 
 end
